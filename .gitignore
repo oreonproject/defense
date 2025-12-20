@@ -1,0 +1,35 @@
+# Binaries
+defensed
+defense-ui
+*.exe
+
+# Build output
+/bin/
+/dist/
+
+# Go
+*.test
+coverage.out
+
+# Qt build artifacts
+moc_*
+rcc_*
+*.moc
+*.rcc
+qrc_*
+deploy/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config
+*.local.toml
+PLAN.md
+notes.md

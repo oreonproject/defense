@@ -1,0 +1,12 @@
+[Unit]
+Description=Oreon Defense Security Daemon
+After=network.target clamav-daemon.service
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/defensed
+Restart=on-failure
+User=root
+
+[Install]
+WantedBy=multi-user.target
