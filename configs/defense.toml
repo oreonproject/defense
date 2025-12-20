@@ -1,0 +1,14 @@
+# Oreon Defense configuration
+
+[general]
+real_time_protection = true
+log_level = "info"
+
+[firewall]
+enabled = true
+
+[notifications]
+level = "all"  # all, important, critical, none
+
+[scanning]
+exclusions = []
