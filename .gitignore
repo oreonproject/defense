@@ -32,3 +32,4 @@ Thumbs.db
 # Local config
 *.local.toml
 PLAN.md
+notes.md
