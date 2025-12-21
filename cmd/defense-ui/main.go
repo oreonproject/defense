@@ -4,7 +4,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,7 +25,8 @@ func main() {
 	// Initialize the IPC client
 	client, err := ipc.NewClient("/run/oreon/defense.sock")
 	if err != nil {
-		log.Fatalf("Failed to create IPC client: %v", err)
+		slog.Error("failed to create IPC client", "error", err)
+		os.Exit(1)
 	}
 
 	// Create and run the system tray
@@ -34,13 +35,14 @@ func main() {
 	// Run the tray in a goroutine so we can handle shutdown gracefully
 	go func() {
 		if err := trayApp.Run(); err != nil {
-			log.Fatalf("Tray application error: %v", err)
+			slog.Error("tray application error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	// Wait for interrupt signal
 	<-sigCh
-	log.Println("Shutting down...")
+	slog.Info("shutting down")
 	// Any cleanup can be done here if needed
 
 }
