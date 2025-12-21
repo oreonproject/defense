@@ -1,6 +1,6 @@
 # Binaries
-defensed
-defense-ui
+# defensed
+# defense-ui
 *.exe
 
 # Build output
