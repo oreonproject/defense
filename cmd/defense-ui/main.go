@@ -18,11 +18,6 @@ var version = "0.1.0-dev"
 func main() {
 	fmt.Printf("Oreon Defense v%s\n", version)
 
-	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
-
 	// Create a channel to listen for interrupt signals
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -35,7 +30,7 @@ func main() {
 
 	// Create and run the system tray
 	trayApp := tray.New(client)
-	
+
 	// Run the tray in a goroutine so we can handle shutdown gracefully
 	go func() {
 		if err := trayApp.Run(); err != nil {
@@ -49,9 +44,3 @@ func main() {
 	// Any cleanup can be done here if needed
 
 }
-
-func run() error {
-	fmt.Println("Qt bindings not yet configured")
-	return nil
-}
-
