@@ -33,8 +33,16 @@ func (d *Daemon) State() *StateManager {
 }
 
 // Run starts the daemon and blocks until context is cancelled.
-func (d *Daemon) Run(ctx context.Context) error {
+func (d *Daemon) Run(ctx context.Context, socketPath string) error {
 	d.logger.Info("daemon starting")
+
+	// Start IPC server
+	server := NewServer(socketPath, d.state)
+	if err := server.Listen(); err != nil {
+		return err
+	}
+	go server.Serve()
+	defer server.Close()
 
 	// initial health check
 	d.healthCheck()
