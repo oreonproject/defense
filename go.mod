@@ -16,7 +16,6 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 	modernc.org/sqlite v1.41.0 // indirect
-)
 	github.com/energye/systray v1.0.2 // indirect
 	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/tevino/abool v0.0.0-20220530134649-2bfc934cb23c // indirect
