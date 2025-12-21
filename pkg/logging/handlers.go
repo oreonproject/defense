@@ -27,9 +27,21 @@ func NewJournaldHandler(level slog.Level) slog.Handler {
 	})
 }
 
+// FileHandler wraps a slog.Handler and the underlying file for cleanup.
+type FileHandler struct {
+	slog.Handler
+	file *os.File
+}
+
+// Close closes the underlying log file.
+func (f *FileHandler) Close() error {
+	return f.file.Close()
+}
+
 // NewFileHandler creates a handler that writes JSON logs to a file.
 // Creates parent directories if needed. Appends to existing file.
-func NewFileHandler(path string, level slog.Level) (slog.Handler, error) {
+// Call Close() when done to release the file handle.
+func NewFileHandler(path string, level slog.Level) (*FileHandler, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return nil, err
 	}
@@ -39,9 +51,11 @@ func NewFileHandler(path string, level slog.Level) (slog.Handler, error) {
 		return nil, err
 	}
 
-	return slog.NewJSONHandler(file, &slog.HandlerOptions{
+	handler := slog.NewJSONHandler(file, &slog.HandlerOptions{
 		Level: level,
-	}), nil
+	})
+
+	return &FileHandler{Handler: handler, file: file}, nil
 }
 
 // MultiHandler fans out log records to multiple handlers.
