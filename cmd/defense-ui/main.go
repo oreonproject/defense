@@ -22,7 +22,8 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
-		// Create a channel to listen for interrupt signals
+
+	// Create a channel to listen for interrupt signals
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
@@ -53,6 +54,4 @@ func run() error {
 	fmt.Println("Qt bindings not yet configured")
 	return nil
 }
-
-
 
