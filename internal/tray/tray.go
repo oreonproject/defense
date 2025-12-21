@@ -3,6 +3,7 @@ package tray
 
 import (
 	"sync"
+	"time"
 
 	"github.com/energye/systray"
 	"github.com/oreonproject/defense/pkg/ipc"
@@ -98,9 +99,17 @@ func (t *Tray) loadIcons() {
 
 // monitorStatus periodically checks the system status and updates the UI
 func (t *Tray) monitorStatus() {
-	// TODO: Implement actual status monitoring
-	// This will check protection status, scan status, etc.
-	// and update the tray icon and menu items accordingly
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		status, err := t.client.Status()
+		if err != nil {
+			t.setIcon("warning")
+			continue
+		}
+		t.setIcon(status.State)
+	}
 }
 
 // showNotification displays a desktop notification
