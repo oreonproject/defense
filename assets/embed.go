@@ -3,17 +3,17 @@ package assets
 
 import _ "embed"
 
-//go:embed icons/protected.png
+//go:embed icons/secure-16.png
 var ProtectedIcon []byte
 
-//go:embed icons/warning.png
+//go:embed icons/warning-16.png
 var WarningIcon []byte
 
-//go:embed icons/alert.png
+//go:embed icons/critical-16.png
 var AlertIcon []byte
 
-//go:embed icons/scanning.png
+//go:embed icons/pending-16.png
 var ScanningIcon []byte
 
-//go:embed icons/paused.png
+//go:embed icons/paused-16.png
 var PausedIcon []byte
