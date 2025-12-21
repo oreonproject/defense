@@ -1,4 +1,6 @@
 // oreon/defense · watchthelight <wtl>
+// Icons by serval_serval_serval_serval
+
 package assets
 
 import _ "embed"
