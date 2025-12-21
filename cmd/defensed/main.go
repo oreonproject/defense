@@ -10,10 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	sddaemon "github.com/coreos/go-systemd/v22/daemon"
-	"github.com/oreonproject/defense/internal/daemon"
 	"github.com/oreonproject/defense/pkg/config"
-	"github.com/oreonproject/defense/pkg/logging"
 )
 
 var version = "0.1.0-dev"
@@ -39,7 +36,6 @@ func main() {
 }
 
 func run(ctx context.Context, configPath string) error {
-	// Load config
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return fmt.Errorf("loading config: %w", err)
@@ -49,48 +45,15 @@ func run(ctx context.Context, configPath string) error {
 	fmt.Printf("  real-time protection: %v\n", cfg.General.RealTimeProtection)
 	fmt.Printf("  firewall integration: %v\n", cfg.Firewall.Enabled)
 
-	// Initialize logger
-	logCfg := logging.Config{
-		Level:       cfg.General.LogLevel,
-		FilePath:    config.LogPath,
-		UseJournald: true, // detect systemd and use journald if available
-	}
-	logger, cleanup, err := logging.New(logCfg)
-	if err != nil {
-		return fmt.Errorf("initializing logger: %w", err)
-	}
-	defer cleanup()
-
-	logger.Info("oreon defense starting", "version", version)
-
-	// Create and start daemon
-	d := daemon.New(cfg, logger)
-
-	// Register state change listener for logging
-	d.StateManager().OnStateChange(func(old, new daemon.State) {
-		logger.Info("state changed", "from", old, "to", new)
-	})
-
+	// TODO: Initialize logging
+	// TODO: Initialize state machine
 	// TODO: Start IPC server
+	// TODO: Start health check loop
 
 	fmt.Println("daemon ready, waiting for shutdown...")
 
-	// notify systemd that we're ready
-	if sent, err := sddaemon.SdNotify(false, sddaemon.SdNotifyReady); err != nil {
-		logger.Warn("failed to notify systemd", "error", err)
-	} else if sent {
-		logger.Info("systemd notification sent")
-	}
+	<-ctx.Done()
 
-	// Run daemon (blocks until context is cancelled)
-	if err := d.Run(ctx); err != nil {
-		return fmt.Errorf("daemon error: %w", err)
-	}
-
-	logger.Info("daemon shutdown complete")
-
-	// notify systemd that we're stopping
-	sddaemon.SdNotify(false, sddaemon.SdNotifyStopping)
-
+	fmt.Println("shutting down...")
 	return nil
 }
