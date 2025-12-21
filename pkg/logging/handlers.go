@@ -1,3 +1,5 @@
+// oreon/defense · watchthelight <wtl>
+
 package logging
 
 import (
@@ -5,6 +7,24 @@ import (
 	"os"
 	"path/filepath"
 )
+
+// IsUnderSystemd checks if we're running as a systemd service.
+func IsUnderSystemd() bool {
+	_, ok := os.LookupEnv("JOURNAL_STREAM")
+	return ok
+}
+
+// NewJournaldHandler creates a handler for systemd journal.
+// Returns nil if not running under systemd.
+func NewJournaldHandler(level slog.Level) slog.Handler {
+	if !IsUnderSystemd() {
+		return nil
+	}
+
+	return slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: level,
+	})
+}
 
 // NewFileHandler creates a handler that writes JSON logs to a file.
 // Creates parent directories if needed. Appends to existing file.

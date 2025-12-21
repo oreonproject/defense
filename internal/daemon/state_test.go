@@ -1,3 +1,5 @@
+// oreon/defense · watchthelight <wtl>
+
 package daemon
 
 import (
