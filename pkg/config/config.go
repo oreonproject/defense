@@ -31,7 +31,8 @@ type Notifications struct {
 }
 
 type Scanning struct {
-	Exclusions []string `toml:"exclusions"`
+	Exclusions     []string `toml:"exclusions"`
+	QuickScanPaths []string `toml:"quick_scan_paths"`
 }
 
 type ClamAV struct {
@@ -52,6 +53,10 @@ func Default() *Config {
 		},
 		Scanning: Scanning{
 			Exclusions: []string{},
+			QuickScanPaths: []string{
+				"/tmp",
+				"/var/tmp",
+			},
 		},
 		ClamAV: ClamAV{
 			SocketPath: "/var/run/clamav/clamd.sock",

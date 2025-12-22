@@ -76,6 +76,11 @@ func (d *Daemon) State() *StateManager {
 	return d.state
 }
 
+// Scanner returns the ClamAV scanner instance.
+func (d *Daemon) Scanner() *scanner.ClamAV {
+	return d.scanner
+}
+
 // Run starts the daemon and blocks until context is cancelled.
 func (d *Daemon) Run(ctx context.Context, socketPath string) error {
 	d.logger.Info("daemon starting")

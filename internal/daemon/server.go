@@ -194,18 +194,61 @@ func (s *Server) handleRequest(req *ipc.Request) *ipc.Response {
 	}
 }
 
-// runScan simulates a scan operation. In production, this will integrate with ClamAV.
+// runScan performs a scan using ClamAV.
 func (s *Server) runScan(scanType string) {
 	slog.Info("starting scan", "type", scanType)
 
-	// Simulate scan duration (quick = 5s, full = 15s)
-	duration := 5 * time.Second
-	if scanType == "full" {
-		duration = 15 * time.Second
+	if !s.daemon.Scanner().IsAvailable() {
+		slog.Error("ClamAV not available, cannot scan")
+		s.daemon.State().SetState(StateWarning)
+		return
 	}
-	time.Sleep(duration)
+
+	var paths []string
+	if scanType == "quick" {
+		paths = s.daemon.Config().Scanning.QuickScanPaths
+	} else {
+		// Full scan: start from root (be careful with this)
+		paths = []string{"/home", "/tmp", "/var/tmp"}
+	}
+
+	var filesScanned, threatsFound int
+	for _, basePath := range paths {
+		s.scanDirectory(basePath, &filesScanned, &threatsFound)
+	}
 
 	s.daemon.SetLastScan(time.Now())
-	s.daemon.State().SetState(StateProtected)
-	slog.Info("scan completed", "type", scanType)
+
+	if threatsFound > 0 {
+		s.daemon.State().SetState(StateAlert)
+	} else {
+		s.daemon.State().SetState(StateProtected)
+	}
+
+	slog.Info("scan completed", "type", scanType, "files", filesScanned, "threats", threatsFound)
+}
+
+// scanDirectory recursively scans a directory.
+func (s *Server) scanDirectory(basePath string, filesScanned, threatsFound *int) {
+	filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // skip inaccessible paths
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		result := s.daemon.Scanner().ScanFile(path)
+		if result.Error != nil {
+			slog.Debug("scan error", "path", path, "error", result.Error)
+			return nil
+		}
+
+		*filesScanned++
+		if !result.Clean {
+			*threatsFound++
+			slog.Warn("threat detected", "path", path, "threat", result.Threat)
+		}
+		return nil
+	})
 }
