@@ -140,7 +140,3 @@ func (t *Tray) monitorStatus() {
 }
 
 // showNotification displays a desktop notification
-func (t *Tray) showNotification(title, message string, isError bool) {
-	// TODO: Implement desktop notifications
-	// This will use the appropriate notification system for the platform
-}
