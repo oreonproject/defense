@@ -23,6 +23,9 @@ type menu struct {
 	openAppItem      *systray.MenuItem
 	settingsItem     *systray.MenuItem
 	quitItem         *systray.MenuItem
+
+	// State tracking
+	isPaused bool
 }
 
 // newMenu creates a new menu instance
@@ -87,18 +90,28 @@ func (m *menu) setupHandlers() {
 func (m *menu) handleQuickScan() {
 	m.tray.setIcon("scanning")
 	go func() {
-		// TODO: Actually scan stuff
-		m.tray.setIcon("protected")
-		m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Quick scan completed successfully")
+		_, err := m.tray.client.StartQuickScan()
+		if err != nil {
+			m.tray.setIcon("warning")
+			m.tray.showNotification(None, "Scan Failed", "Failed to start quick scan: "+err.Error())
+			return
+		}
+		// The daemon will set state back to protected when scan completes
+		// We show notification here as scan has started
+		m.tray.showNotification(NotificationScanComplete, "Quick Scan Started", "Scanning your system...")
 	}()
 }
 
 func (m *menu) handleFullScan() {
 	m.tray.setIcon("scanning")
 	go func() {
-		// TODO: Actually scan stuff
-		m.tray.setIcon("protected")
-		m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Full system scan completed successfully")
+		_, err := m.tray.client.StartFullScan()
+		if err != nil {
+			m.tray.setIcon("warning")
+			m.tray.showNotification(None, "Scan Failed", "Failed to start full scan: "+err.Error())
+			return
+		}
+		m.tray.showNotification(NotificationScanComplete, "Full Scan Started", "Scanning your entire system...")
 	}()
 }
 func (m *menu) handleUpdateRules() {
@@ -114,40 +127,57 @@ func (m *menu) handleUpdateRules() {
 }
 
 func (m *menu) handlePause(duration string) {
+	// Check if we're resuming
+	if m.isPaused {
+		err := m.tray.client.Resume()
+		if err != nil {
+			m.tray.showNotification(None, "Error", "Failed to resume protection: "+err.Error())
+			return
+		}
+		m.isPaused = false
+		m.pauseMenu.SetTitle("Pause Protection")
+		m.tray.showNotification(NotificationStateChange, "Protection Resumed", "Protection is now active")
+		return
+	}
+
+	// Pause protection
+	err := m.tray.client.Pause()
+	if err != nil {
+		m.tray.showNotification(None, "Error", "Failed to pause protection: "+err.Error())
+		return
+	}
+
+	m.isPaused = true
+	m.pauseMenu.SetTitle("Resume Protection")
+
 	switch duration {
 	case "15m":
-		m.tray.setIcon("paused")
-		m.pauseMenu.SetTitle("Resume Protection")
 		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume in 15 minutes")
-
 	case "1h":
-		m.tray.setIcon("paused")
-		m.pauseMenu.SetTitle("Resume Protection")
 		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume in 1 hour")
-
 	case "reboot":
-		m.tray.setIcon("paused")
-		m.pauseMenu.SetTitle("Resume Protection")
 		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume after system reboot")
 	}
 }
 
 func (m *menu) handleFirewallToggle() {
-	// TODO: Call actual firewall toggle
-	// err := m.tray.client.SetFirewallEnabled(!m.firewallItem.Checked())
-	// if err != nil {
-	// 	m.tray.showNotification("Error", "Failed to toggle firewall", true)
-	// 	return
-	// }
+	newState := !m.firewallItem.Checked()
 
-	if m.firewallItem.Checked() {
-		m.firewallItem.Uncheck()
-		m.firewallItem.SetTitle("Firewall: Disabled")
-		m.firewallItem.SetTooltip("Firewall protection is disabled")
-	} else {
+	err := m.tray.client.SetFirewallEnabled(newState)
+	if err != nil {
+		m.tray.showNotification(None, "Error", "Failed to toggle firewall: "+err.Error())
+		return
+	}
+
+	if newState {
 		m.firewallItem.Check()
 		m.firewallItem.SetTitle("Firewall: Enabled ✓")
 		m.firewallItem.SetTooltip("Firewall protection is enabled")
+	} else {
+		m.firewallItem.Uncheck()
+		m.firewallItem.SetTitle("Firewall: Disabled")
+		m.firewallItem.SetTooltip("Firewall protection is disabled")
+		m.tray.showNotification(NotificationFirewallDisabled, "Firewall Disabled", "Your firewall protection is now disabled")
 	}
 }
 

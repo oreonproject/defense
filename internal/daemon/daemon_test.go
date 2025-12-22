@@ -27,7 +27,10 @@ func TestDaemonRun(t *testing.T) {
 		t.Fatalf("Run returned error: %v", err)
 	}
 
-	if d.State().State() != StateProtected {
-		t.Errorf("state = %v, want %v", d.State().State(), StateProtected)
+	// After health check, daemon should be in Warning state (ClamAV not available in test)
+	// or Protected state (if ClamAV happens to be available)
+	state := d.State().State()
+	if state != StateWarning && state != StateProtected {
+		t.Errorf("state = %v, want %v or %v", state, StateWarning, StateProtected)
 	}
 }

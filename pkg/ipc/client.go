@@ -17,6 +17,10 @@ type Client interface {
 	GetProtectionStatus() (bool, error)
 	SetFirewallEnabled(enabled bool) error
 	IsFirewallEnabled() (bool, error)
+	StartQuickScan() (*ScanResponse, error)
+	StartFullScan() (*ScanResponse, error)
+	Pause() error
+	Resume() error
 	Close() error
 }
 
@@ -177,6 +181,50 @@ func (c *socketClient) IsFirewallEnabled() (bool, error) {
 		return false, err
 	}
 	return status.FirewallEnabled, nil
+}
+
+func (c *socketClient) StartQuickScan() (*ScanResponse, error) {
+	resp, err := c.call(CmdScanQuick, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := json.Marshal(resp.Data)
+	if err != nil {
+		return nil, err
+	}
+	var scanResp ScanResponse
+	if err := json.Unmarshal(data, &scanResp); err != nil {
+		return nil, err
+	}
+	return &scanResp, nil
+}
+
+func (c *socketClient) StartFullScan() (*ScanResponse, error) {
+	resp, err := c.call(CmdScanFull, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := json.Marshal(resp.Data)
+	if err != nil {
+		return nil, err
+	}
+	var scanResp ScanResponse
+	if err := json.Unmarshal(data, &scanResp); err != nil {
+		return nil, err
+	}
+	return &scanResp, nil
+}
+
+func (c *socketClient) Pause() error {
+	_, err := c.call(CmdPause, nil)
+	return err
+}
+
+func (c *socketClient) Resume() error {
+	_, err := c.call(CmdResume, nil)
+	return err
 }
 
 func (c *socketClient) Close() error {

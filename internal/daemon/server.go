@@ -18,15 +18,15 @@ import (
 type Server struct {
 	socketPath string
 	listener   net.Listener
-	state      *StateManager
+	daemon     *Daemon
 	done       chan struct{}
 }
 
 // NewServer creates an IPC server that exposes daemon state.
-func NewServer(socketPath string, state *StateManager) *Server {
+func NewServer(socketPath string, daemon *Daemon) *Server {
 	return &Server{
 		socketPath: socketPath,
-		state:      state,
+		daemon:     daemon,
 		done:       make(chan struct{}),
 	}
 }
@@ -125,11 +125,74 @@ func (s *Server) handleRequest(req *ipc.Request) *ipc.Response {
 			ID:      req.ID,
 			Success: true,
 			Data: ipc.StatusResponse{
-				State:           s.state.State().String(),
-				FirewallEnabled: false, // TODO: wire to firewall
-				LastScan:        time.Time{},
-				RulesUpdated:    time.Time{},
+				State:           s.daemon.State().State().String(),
+				FirewallEnabled: s.daemon.FirewallEnabled(),
+				LastScan:        s.daemon.LastScan(),
+				RulesUpdated:    s.daemon.RulesUpdated(),
 			},
+		}
+
+	case ipc.CmdFirewallEnable:
+		s.daemon.SetFirewallEnabled(true)
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data:    "firewall enabled",
+		}
+
+	case ipc.CmdFirewallDisable:
+		s.daemon.SetFirewallEnabled(false)
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data:    "firewall disabled",
+		}
+
+	case ipc.CmdFirewallStatus:
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data: ipc.FirewallStatusResponse{
+				Enabled: s.daemon.FirewallEnabled(),
+			},
+		}
+
+	case ipc.CmdScanQuick:
+		s.daemon.State().SetState(StateScanning)
+		go s.runScan("quick")
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data: ipc.ScanResponse{
+				JobID: "quick-" + time.Now().Format("20060102-150405"),
+			},
+		}
+
+	case ipc.CmdScanFull:
+		s.daemon.State().SetState(StateScanning)
+		go s.runScan("full")
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data: ipc.ScanResponse{
+				JobID: "full-" + time.Now().Format("20060102-150405"),
+			},
+		}
+
+	case ipc.CmdPause:
+		s.daemon.State().SetState(StatePaused)
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data:    "protection paused",
+		}
+
+	case ipc.CmdResume:
+		s.daemon.State().SetState(StateProtected)
+		return &ipc.Response{
+			ID:      req.ID,
+			Success: true,
+			Data:    "protection resumed",
 		}
 
 	default:
@@ -139,4 +202,20 @@ func (s *Server) handleRequest(req *ipc.Request) *ipc.Response {
 			Error:   "unknown command: " + req.Command,
 		}
 	}
+}
+
+// runScan simulates a scan operation. In production, this will integrate with ClamAV.
+func (s *Server) runScan(scanType string) {
+	slog.Info("starting scan", "type", scanType)
+
+	// Simulate scan duration (quick = 5s, full = 15s)
+	duration := 5 * time.Second
+	if scanType == "full" {
+		duration = 15 * time.Second
+	}
+	time.Sleep(duration)
+
+	s.daemon.SetLastScan(time.Now())
+	s.daemon.State().SetState(StateProtected)
+	slog.Info("scan completed", "type", scanType)
 }
