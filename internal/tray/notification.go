@@ -1,4 +1,5 @@
-// notification.go
+// oreon/defense · cavaire3d <C3D>
+
 package tray
 
 import (

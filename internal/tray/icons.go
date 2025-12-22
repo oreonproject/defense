@@ -1,4 +1,5 @@
 // oreon/defense · cavaire3d <C3D>
+// Icons by serval_serval_serval_serval
 
 package tray
 
