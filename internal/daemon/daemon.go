@@ -11,6 +11,7 @@ import (
 
 	"github.com/oreonproject/defense/internal/scanner"
 	"github.com/oreonproject/defense/pkg/config"
+	"github.com/oreonproject/defense/pkg/events"
 )
 
 // Daemon is the main defense daemon that coordinates scanning,
@@ -20,6 +21,7 @@ type Daemon struct {
 	state   *StateManager
 	logger  *slog.Logger
 	scanner *scanner.ClamAV
+	events  *events.Emitter
 
 	// Runtime state (may differ from config)
 	firewallEnabled bool
@@ -34,6 +36,7 @@ func New(cfg *config.Config, logger *slog.Logger) *Daemon {
 		state:           NewStateManager(),
 		logger:          logger,
 		scanner:         scanner.New(cfg.ClamAV.SocketPath),
+		events:          events.NewEmitter(events.WithLogger(logger)),
 		firewallEnabled: cfg.Firewall.Enabled,
 		rulesUpdated:    time.Now(), // Assume rules are current at startup
 	}
@@ -79,6 +82,11 @@ func (d *Daemon) State() *StateManager {
 // Scanner returns the ClamAV scanner instance.
 func (d *Daemon) Scanner() *scanner.ClamAV {
 	return d.scanner
+}
+
+// Events returns the event emitter for logging wide events.
+func (d *Daemon) Events() *events.Emitter {
+	return d.events
 }
 
 // Run starts the daemon and blocks until context is cancelled.
