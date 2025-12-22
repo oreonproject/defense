@@ -120,7 +120,10 @@ func (d *Daemon) Run(ctx context.Context, socketPath string) error {
 
 // healthCheck evaluates system state and updates the state machine.
 func (d *Daemon) healthCheck() {
-	d.logger.Debug("running health check")
+	evt := events.StartHealthCheck()
+	defer func() {
+		d.events.Emit(evt.End())
+	}()
 
 	// Don't change state if we're scanning or paused
 	currentState := d.state.State()
@@ -130,28 +133,23 @@ func (d *Daemon) healthCheck() {
 
 	// Check ClamAV availability
 	clamAvailable := d.checkClamAV()
+	evt.ClamAVAvailable(clamAvailable)
+	evt.FirewallEnabled(d.firewallEnabled)
 
 	// Determine the appropriate state
 	var newState State
 
 	if !clamAvailable {
 		newState = StateWarning
-		d.logger.Warn("ClamAV not available")
 	} else if !d.firewallEnabled && d.cfg.Firewall.Enabled {
 		// Firewall should be on but isn't
 		newState = StateWarning
-		d.logger.Warn("firewall disabled but should be enabled")
 	} else {
 		newState = StateProtected
 	}
 
 	if currentState != newState {
 		d.state.SetState(newState)
-		d.logger.Info("state changed", "from", currentState, "to", newState)
-	}
-
-	if currentState == StateStarting {
-		d.logger.Info("daemon ready", "state", d.state.State())
 	}
 }
 
