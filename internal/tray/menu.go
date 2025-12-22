@@ -85,23 +85,21 @@ func (m *menu) setupHandlers() {
 }
 
 func (m *menu) handleQuickScan() {
-    m.tray.setIcon("scanning")
-    go func() {
-        // Simulate scan
-		//You know, actually scan stuff
-        m.tray.setIcon("protected")
-        m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Quick scan completed successfully")
-    }()
+	m.tray.setIcon("scanning")
+	go func() {
+		// TODO: Actually scan stuff
+		m.tray.setIcon("protected")
+		m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Quick scan completed successfully")
+	}()
 }
 
 func (m *menu) handleFullScan() {
-    m.tray.setIcon("scanning")
-    go func() {
-        // Simulate scan
-		//You know, actually scan stuff
-        m.tray.setIcon("protected")
-        m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Full system scan completed successfully")
-    }()
+	m.tray.setIcon("scanning")
+	go func() {
+		// TODO: Actually scan stuff
+		m.tray.setIcon("protected")
+		m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Full system scan completed successfully")
+	}()
 }
 func (m *menu) handleUpdateRules() {
 	// TODO: Implement rules update

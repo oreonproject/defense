@@ -25,34 +25,34 @@ const (
 
 // showNotification shows a system notification with optional actions
 func (t *Tray) showNotification(notificationType NotificationType, title, message string) {
-    n := notify.Notification{
-        AppName:       "Oreon Defense",
-        Summary:       title,
-        Body:          message,
-        ExpireTimeout: 10 * time.Second,
-        Hints:         make(map[string]dbus.Variant),
-    }
+	n := notify.Notification{
+		AppName:       "Oreon Defense",
+		Summary:       title,
+		Body:          message,
+		ExpireTimeout: 10 * time.Second,
+		Hints:         make(map[string]dbus.Variant),
+	}
 
-    // Set all notifications as critical
-    n.Hints["urgency"] = dbus.MakeVariant(byte(2)) // Critical
+	// Set all notifications as critical
+	n.Hints["urgency"] = dbus.MakeVariant(byte(2)) // Critical
 
-    // Add actions based on notification type
-    switch notificationType {
-    case NotificationFirewallDisabled:
-        n.Actions = []notify.Action{
-            {Key: "enable", Label: "Enable Now"},
-            {Key: "remind", Label: "Remind Later"},
-        }
-    case NotificationThreatBlocked:
-        n.Actions = []notify.Action{
-            {Key: "details", Label: "View Details"},
-        }
-    }
+	// Add actions based on notification type
+	switch notificationType {
+	case NotificationFirewallDisabled:
+		n.Actions = []notify.Action{
+			{Key: "enable", Label: "Enable Now"},
+			{Key: "remind", Label: "Remind Later"},
+		}
+	case NotificationThreatBlocked:
+		n.Actions = []notify.Action{
+			{Key: "details", Label: "View Details"},
+		}
+	}
 
-    // Send the notification
-    // if _, err := notify.SendNotification(t.conn,n); err != nil {
-    //     log.Printf("Failed to show notification: %v", err)
-    // }
+	// Send the notification
+	// if _, err := notify.SendNotification(t.conn,n); err != nil {
+	//     log.Printf("Failed to show notification: %v", err)
+	// }
 }
 // executeAction runs a command with the given arguments
 func (t *Tray) executeAction(command string, args []string) error {
