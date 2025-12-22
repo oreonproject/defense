@@ -9,15 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/oreonproject/defense/internal/scanner"
 	"github.com/oreonproject/defense/pkg/config"
 )
 
 // Daemon is the main defense daemon that coordinates scanning,
 // firewall, and protection state.
 type Daemon struct {
-	cfg    *config.Config
-	state  *StateManager
-	logger *slog.Logger
+	cfg     *config.Config
+	state   *StateManager
+	logger  *slog.Logger
+	scanner *scanner.ClamAV
 
 	// Runtime state (may differ from config)
 	firewallEnabled bool
@@ -31,6 +33,7 @@ func New(cfg *config.Config, logger *slog.Logger) *Daemon {
 		cfg:             cfg,
 		state:           NewStateManager(),
 		logger:          logger,
+		scanner:         scanner.New(cfg.ClamAV.SocketPath),
 		firewallEnabled: cfg.Firewall.Enabled,
 		rulesUpdated:    time.Now(), // Assume rules are current at startup
 	}
@@ -141,19 +144,21 @@ func (d *Daemon) healthCheck() {
 
 // checkClamAV verifies ClamAV daemon is available.
 func (d *Daemon) checkClamAV() bool {
-	// Check configured path first, then fallbacks
-	socketPaths := []string{
-		d.cfg.ClamAV.SocketPath,
+	// Use scanner to check (does ping)
+	if d.scanner.IsAvailable() {
+		d.logger.Debug("ClamAV daemon available via configured socket")
+		return true
+	}
+
+	// Fallback: check common socket paths
+	fallbackPaths := []string{
 		"/var/run/clamav/clamd.sock",
 		"/var/run/clamav/clamd.ctl",
 		"/run/clamav/clamd.sock",
 		"/tmp/clamd.socket",
 	}
 
-	for _, path := range socketPaths {
-		if path == "" {
-			continue
-		}
+	for _, path := range fallbackPaths {
 		if _, err := os.Stat(path); err == nil {
 			d.logger.Debug("found ClamAV socket", "path", path)
 			return true
@@ -162,14 +167,12 @@ func (d *Daemon) checkClamAV() bool {
 
 	// Also check if clamd process is running via /proc
 	if _, err := os.Stat("/proc"); err == nil {
-		// On Linux, we can check if clamd is running
 		entries, err := os.ReadDir("/proc")
 		if err == nil {
 			for _, entry := range entries {
 				if !entry.IsDir() {
 					continue
 				}
-				// Check if it's a PID directory
 				cmdlinePath := "/proc/" + entry.Name() + "/cmdline"
 				data, err := os.ReadFile(cmdlinePath)
 				if err != nil {
