@@ -15,6 +15,7 @@ type Config struct {
 	Notifications Notifications `toml:"notifications"`
 	Scanning      Scanning      `toml:"scanning"`
 	ClamAV        ClamAV        `toml:"clamav"`
+	Events        Events        `toml:"events"`
 }
 
 type General struct {
@@ -39,6 +40,11 @@ type ClamAV struct {
 	SocketPath string `toml:"socket_path"`
 }
 
+type Events struct {
+	DatabasePath string  `toml:"database_path"` // path to SQLite database for event storage
+	SampleRate   float64 `toml:"sample_rate"`   // 0.0-1.0, percentage of successful events to store
+}
+
 func Default() *Config {
 	return &Config{
 		General: General{
@@ -60,6 +66,10 @@ func Default() *Config {
 		},
 		ClamAV: ClamAV{
 			SocketPath: "/var/run/clamav/clamd.sock",
+		},
+		Events: Events{
+			DatabasePath: "/var/lib/oreon/events.db",
+			SampleRate:   1.0, // 100% by default
 		},
 	}
 }
