@@ -65,7 +65,16 @@ const (
 	// Rule updates
 	CmdRulesStatus = "rules_status"
 	CmdRulesUpdate = "rules_update"
+
+	// Subscriptions
+	CmdSubscribe = "subscribe" // subscribe to state changes (push notifications)
 )
+
+// StateChangeEvent is pushed to subscribed clients when state changes.
+type StateChangeEvent struct {
+	OldState string `json:"old_state"`
+	NewState string `json:"new_state"`
+}
 
 // StatusResponse is returned by CmdStatus.
 //

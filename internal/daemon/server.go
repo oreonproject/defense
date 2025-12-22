@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/oreonproject/defense/pkg/ipc"
@@ -17,19 +18,29 @@ import (
 
 // Server handles IPC connections from clients (tray, CLI).
 type Server struct {
-	socketPath string
-	listener   net.Listener
-	daemon     *Daemon
-	done       chan struct{}
+	socketPath  string
+	listener    net.Listener
+	daemon      *Daemon
+	done        chan struct{}
+	subscribers map[net.Conn]bool
+	subMu       sync.Mutex
 }
 
 // NewServer creates an IPC server that exposes daemon state.
 func NewServer(socketPath string, daemon *Daemon) *Server {
-	return &Server{
-		socketPath: socketPath,
-		daemon:     daemon,
-		done:       make(chan struct{}),
+	s := &Server{
+		socketPath:  socketPath,
+		daemon:      daemon,
+		done:        make(chan struct{}),
+		subscribers: make(map[net.Conn]bool),
 	}
+
+	// Register for state changes to push to subscribers
+	daemon.State().OnStateChange(func(old, new State) {
+		s.broadcastStateChange(old.String(), new.String())
+	})
+
+	return s
 }
 
 // Listen creates the unix socket and starts accepting connections.
@@ -85,8 +96,48 @@ func (s *Server) Close() error {
 	return nil
 }
 
+// subscribe adds a connection to the subscriber list.
+func (s *Server) subscribe(conn net.Conn) {
+	s.subMu.Lock()
+	s.subscribers[conn] = true
+	s.subMu.Unlock()
+	slog.Debug("client subscribed", "remote", conn.RemoteAddr())
+}
+
+// unsubscribe removes a connection from the subscriber list.
+func (s *Server) unsubscribe(conn net.Conn) {
+	s.subMu.Lock()
+	delete(s.subscribers, conn)
+	s.subMu.Unlock()
+}
+
+// broadcastStateChange sends state change events to all subscribers.
+func (s *Server) broadcastStateChange(oldState, newState string) {
+	event := ipc.StateChangeEvent{
+		OldState: oldState,
+		NewState: newState,
+	}
+	resp := makeResponse("event", event)
+
+	s.subMu.Lock()
+	subscribers := make([]net.Conn, 0, len(s.subscribers))
+	for conn := range s.subscribers {
+		subscribers = append(subscribers, conn)
+	}
+	s.subMu.Unlock()
+
+	for _, conn := range subscribers {
+		encoder := json.NewEncoder(conn)
+		if err := encoder.Encode(resp); err != nil {
+			slog.Debug("failed to send event to subscriber", "error", err)
+			s.unsubscribe(conn)
+		}
+	}
+}
+
 func (s *Server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+	defer s.unsubscribe(conn) // clean up subscription on disconnect
 
 	reader := bufio.NewReader(conn)
 	encoder := json.NewEncoder(conn)
@@ -105,6 +156,17 @@ func (s *Server) handleConnection(conn net.Conn) {
 				Error:   "invalid JSON",
 			}); err != nil {
 				slog.Warn("failed to encode error response", "error", err)
+				return
+			}
+			continue
+		}
+
+		// Handle subscribe specially - it registers this connection for push events
+		if req.Command == ipc.CmdSubscribe {
+			s.subscribe(conn)
+			resp := makeResponse(req.ID, "subscribed")
+			if err := encoder.Encode(resp); err != nil {
+				slog.Warn("failed to encode response", "error", err)
 				return
 			}
 			continue

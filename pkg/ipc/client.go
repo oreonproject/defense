@@ -22,6 +22,7 @@ type Client interface {
 	StartFullScan() (*ScanResponse, error)
 	Pause() error
 	Resume() error
+	Subscribe() (<-chan StateChangeEvent, error)
 	Close() error
 }
 
@@ -215,6 +216,69 @@ func (c *socketClient) Pause() error {
 func (c *socketClient) Resume() error {
 	_, err := c.call(CmdResume, nil)
 	return err
+}
+
+func (c *socketClient) Subscribe() (<-chan StateChangeEvent, error) {
+	// Create a dedicated connection for subscription
+	conn, err := net.Dial("unix", c.socketPath)
+	if err != nil {
+		return nil, fmt.Errorf("connect for subscribe: %w", err)
+	}
+
+	// Send subscribe request
+	req := Request{Version: ProtocolVersion, ID: "sub", Command: CmdSubscribe}
+	data, _ := json.Marshal(req)
+	data = append(data, '\n')
+	if _, err := conn.Write(data); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("send subscribe: %w", err)
+	}
+
+	// Read subscription confirmation
+	reader := bufio.NewReader(conn)
+	line, err := reader.ReadBytes('\n')
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("read subscribe response: %w", err)
+	}
+
+	var resp Response
+	if err := json.Unmarshal(line, &resp); err != nil || !resp.Success {
+		conn.Close()
+		return nil, fmt.Errorf("subscribe failed: %s", resp.Error)
+	}
+
+	// Create channel and start reading events
+	events := make(chan StateChangeEvent, 10)
+	go func() {
+		defer conn.Close()
+		defer close(events)
+
+		for {
+			line, err := reader.ReadBytes('\n')
+			if err != nil {
+				return
+			}
+
+			var resp Response
+			if err := json.Unmarshal(line, &resp); err != nil {
+				continue
+			}
+
+			var event StateChangeEvent
+			if err := resp.UnmarshalData(&event); err != nil {
+				continue
+			}
+
+			select {
+			case events <- event:
+			default:
+				// drop if channel is full
+			}
+		}
+	}()
+
+	return events, nil
 }
 
 func (c *socketClient) Close() error {

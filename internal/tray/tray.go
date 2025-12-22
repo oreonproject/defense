@@ -125,8 +125,30 @@ func (t *Tray) loadIcons() {
 	t.iconPaused = loadIcon("paused")
 }
 
-// monitorStatus periodically checks the system status and updates the UI
+// monitorStatus subscribes to state changes and updates the UI.
+// Falls back to polling if subscription fails.
 func (t *Tray) monitorStatus() {
+	// Try to subscribe for push events
+	events, err := t.client.Subscribe()
+	if err != nil {
+		slog.Warn("subscription failed, falling back to polling", "error", err)
+		t.pollStatus()
+		return
+	}
+
+	slog.Info("subscribed to daemon state changes")
+
+	for event := range events {
+		t.setIcon(event.NewState)
+	}
+
+	// Subscription ended (connection closed), fall back to polling
+	slog.Warn("subscription ended, falling back to polling")
+	t.pollStatus()
+}
+
+// pollStatus periodically checks the system status (fallback mode).
+func (t *Tray) pollStatus() {
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
 
