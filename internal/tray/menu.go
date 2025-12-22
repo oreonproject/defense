@@ -85,29 +85,24 @@ func (m *menu) setupHandlers() {
 }
 
 func (m *menu) handleQuickScan() {
-	m.tray.showNotification("Scan Started", "Quick scan has been initiated", false)
-	go func() {
-		// Simulate scan
-		m.tray.setIcon("scanning")
-		// TODO: Call actual scan method
-		// scanID, err := m.tray.client.StartQuickScan()
-		m.tray.setIcon("protected")
-		m.tray.showNotification("Scan Complete", "Quick scan completed successfully", false)
-	}()
+    m.tray.setIcon("scanning")
+    go func() {
+        // Simulate scan
+		//You know, actually scan stuff
+        m.tray.setIcon("protected")
+        m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Quick scan completed successfully")
+    }()
 }
 
 func (m *menu) handleFullScan() {
-	m.tray.showNotification("Full Scan Started", "Full system scan has been initiated. This may take a while.", false)
-	go func() {
-		// Simulate scan
-		m.tray.setIcon("scanning")
-		// TODO: Call actual scan method
-		// scanID, err := m.tray.client.StartFullScan()
-		m.tray.setIcon("protected")
-		m.tray.showNotification("Scan Complete", "Full system scan completed successfully", false)
-	}()
+    m.tray.setIcon("scanning")
+    go func() {
+        // Simulate scan
+		//You know, actually scan stuff
+        m.tray.setIcon("protected")
+        m.tray.showNotification(NotificationScanComplete, "Scan Complete", "Full system scan completed successfully")
+    }()
 }
-
 func (m *menu) handleUpdateRules() {
 	// TODO: Implement rules update
 	go func() {
@@ -116,7 +111,7 @@ func (m *menu) handleUpdateRules() {
 		// 	m.tray.showNotification("Update Failed", "Failed to update security rules", true)
 		// 	return
 		// }
-		m.tray.showNotification("Rules Updated", "Security rules have been updated successfully", false)
+		m.tray.showNotification(None, "Rules Updated", "Security rules have been updated successfully")
 	}()
 }
 
@@ -125,17 +120,17 @@ func (m *menu) handlePause(duration string) {
 	case "15m":
 		m.tray.setIcon("paused")
 		m.pauseMenu.SetTitle("Resume Protection")
-		m.tray.showNotification("Protection Paused", "Protection will resume in 15 minutes", false)
+		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume in 15 minutes")
 
 	case "1h":
 		m.tray.setIcon("paused")
 		m.pauseMenu.SetTitle("Resume Protection")
-		m.tray.showNotification("Protection Paused", "Protection will resume in 1 hour", false)
+		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume in 1 hour")
 
 	case "reboot":
 		m.tray.setIcon("paused")
 		m.pauseMenu.SetTitle("Resume Protection")
-		m.tray.showNotification("Protection Paused", "Protection will resume after system reboot", false)
+		m.tray.showNotification(NotificationStateChange, "Protection Paused", "Protection will resume after system reboot")
 	}
 }
 

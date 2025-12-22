@@ -10,7 +10,7 @@ var protectedIcon []byte
 //go:embed icons/warning.png
 var warningIcon []byte
 
-// go:embed icons/alert.png
+//go:embed icons/alert.png
 var alertIcon []byte
 
 //go:embed icons/scanning.png
