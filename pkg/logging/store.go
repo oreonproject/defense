@@ -5,6 +5,7 @@ package logging
 import (
 	"database/sql"
 	"encoding/json"
+	"log/slog"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -138,7 +139,9 @@ func (s *LogStore) Query(opts QueryOptions) ([]LogEntry, error) {
 		}
 
 		if len(metadataJSON) > 0 {
-			json.Unmarshal(metadataJSON, &entry.Metadata)
+			if err := json.Unmarshal(metadataJSON, &entry.Metadata); err != nil {
+				slog.Warn("failed to unmarshal log metadata", "id", entry.ID, "error", err)
+			}
 		}
 
 		entries = append(entries, entry)
