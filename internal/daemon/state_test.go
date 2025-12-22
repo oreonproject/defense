@@ -5,6 +5,7 @@ package daemon
 import (
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStateString(t *testing.T) {
@@ -43,20 +44,23 @@ func TestStateManager(t *testing.T) {
 func TestStateListener(t *testing.T) {
 	sm := NewStateManager()
 
-	var called bool
+	done := make(chan struct{})
 	var gotOld, gotNew State
 
 	sm.OnStateChange(func(old, new State) {
-		called = true
 		gotOld = old
 		gotNew = new
+		close(done)
 	})
 
 	sm.SetState(StateProtected)
 
-	if !called {
-		t.Error("listener was not called")
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("listener was not called within timeout")
 	}
+
 	if gotOld != StateStarting {
 		t.Errorf("old = %v, want StateStarting", gotOld)
 	}
@@ -68,16 +72,20 @@ func TestStateListener(t *testing.T) {
 func TestStateListenerNotCalledOnSameState(t *testing.T) {
 	sm := NewStateManager()
 	sm.SetState(StateProtected)
+	time.Sleep(10 * time.Millisecond) // wait for first state change to process
 
-	var called bool
+	called := make(chan struct{}, 1)
 	sm.OnStateChange(func(old, new State) {
-		called = true
+		called <- struct{}{}
 	})
 
 	sm.SetState(StateProtected) // same state
 
-	if called {
+	select {
+	case <-called:
 		t.Error("listener should not be called when state doesn't change")
+	case <-time.After(50 * time.Millisecond):
+		// expected - listener was not called
 	}
 }
 

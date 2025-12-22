@@ -64,18 +64,23 @@ func (sm *StateManager) State() State {
 }
 
 // SetState changes the state and notifies all listeners.
-// Listeners are called synchronously - keep them fast.
+// Listeners are called asynchronously so slow listeners don't block.
 func (sm *StateManager) SetState(s State) {
 	sm.mu.Lock()
 	old := sm.state
 	sm.state = s
-	listeners := sm.listeners // copy slice header for safe iteration
+	listeners := make([]StateListener, len(sm.listeners))
+	copy(listeners, sm.listeners)
 	sm.mu.Unlock()
 
 	if old != s {
-		for _, fn := range listeners {
-			fn(old, s)
-		}
+		go func() {
+			for _, fn := range listeners {
+				if fn != nil {
+					fn(old, s)
+				}
+			}
+		}()
 	}
 }
 
