@@ -3,6 +3,7 @@ package tray
 
 import (
 	"errors"
+	"log"
 	"log/slog"
 	"os"
 	"sync"
@@ -51,10 +52,26 @@ func (t *Tray) Run() error {
 func (t *Tray) onReady() {
 	// Initialize D-Bus notifier
 	conn, err := dbus.SessionBus()
+	onAction := func(action *notify.ActionInvokedSignal) {
+		log.Println("Action Invoked:", action.ActionKey)
+		switch action.ActionKey {
+		case "enable":
+			t.executeOrder66("defense-ui", []string{"--enable-firewall"})
+		case "update":
+			t.executeOrder66("defense-ui", []string{"--update-rules"})
+		case "details":
+			t.executeOrder66("defense-ui", []string{"--show-threats"})
+		case "view_results":
+			t.executeOrder66("defense-ui", []string{"--show-scan-results"})
+		// case "dismiss", "remind":
+		// 	// Just close the notification
+		// 	t.notifier.CloseNotification(uint32(id))
+		}
+	}
 	if err != nil {
 		slog.Error("failed to connect to session bus", "error", err)
 	} else {
-		t.notifier, err = notify.New(conn)
+		t.notifier, err = notify.New(conn,notify.WithOnAction(onAction))
 		if err != nil {
 			slog.Error("failed to create notifier", "error", err)
 		}
