@@ -1,3 +1,5 @@
+// oreon/defense · cavaire3d <C3D>
+
 package tray
 
 import (
@@ -23,16 +25,16 @@ var pausedIcon []byte
 func loadIcon(state string) []byte {
 	switch state {
 	case "protected":
-		return protectedIcon
+		return assets.ProtectedIcon
 	case "warning":
-		return warningIcon
+		return assets.WarningIcon
 	case "alert":
-		return alertIcon
+		return assets.AlertIcon
 	case "scanning":
-		return scanningIcon
+		return assets.ScanningIcon
 	case "paused":
-		return pausedIcon
+		return assets.PausedIcon
 	default:
-		return protectedIcon // Default to protected icon
+		return assets.ProtectedIcon
 	}
 }

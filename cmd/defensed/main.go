@@ -6,10 +6,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/oreonproject/defense/internal/daemon"
 	"github.com/oreonproject/defense/pkg/config"
 )
 
@@ -41,19 +43,8 @@ func run(ctx context.Context, configPath string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	fmt.Printf("loaded config from %s\n", configPath)
-	fmt.Printf("  real-time protection: %v\n", cfg.General.RealTimeProtection)
-	fmt.Printf("  firewall integration: %v\n", cfg.Firewall.Enabled)
+	slog.Info("config loaded", "path", configPath)
 
-	// TODO: Initialize logging
-	// TODO: Initialize state machine
-	// TODO: Start IPC server
-	// TODO: Start health check loop
-
-	fmt.Println("daemon ready, waiting for shutdown...")
-
-	<-ctx.Done()
-
-	fmt.Println("shutting down...")
-	return nil
+	d := daemon.New(cfg, slog.Default())
+	return d.Run(ctx, config.SocketPath)
 }

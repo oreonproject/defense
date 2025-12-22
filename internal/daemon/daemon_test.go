@@ -17,10 +17,12 @@ func TestDaemonRun(t *testing.T) {
 
 	d := New(cfg, logger)
 
+	socketPath := t.TempDir() + "/test.sock"
+
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	err := d.Run(ctx)
+	err := d.Run(ctx, socketPath)
 	if err != nil {
 		t.Fatalf("Run returned error: %v", err)
 	}
