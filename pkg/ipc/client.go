@@ -3,7 +3,9 @@ package ipc
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -25,25 +27,74 @@ type socketClient struct {
 	reader     *bufio.Reader
 	mu         sync.Mutex
 	reqID      atomic.Uint64
+	connected  bool
 }
 
 // NewClient creates a new IPC client connected to the daemon
 func NewClient(socketPath string) (Client, error) {
-	conn, err := net.Dial("unix", socketPath)
-	if err != nil {
-		return nil, fmt.Errorf("connect to daemon: %w", err)
+	c := &socketClient{socketPath: socketPath}
+	if err := c.connect(); err != nil {
+		return nil, err
 	}
-	return &socketClient{
-		socketPath: socketPath,
-		conn:       conn,
-		reader:     bufio.NewReader(conn),
-	}, nil
+	return c, nil
+}
+
+// connect establishes a connection to the daemon
+func (c *socketClient) connect() error {
+	conn, err := net.Dial("unix", c.socketPath)
+	if err != nil {
+		return fmt.Errorf("connect to daemon: %w", err)
+	}
+	c.conn = conn
+	c.reader = bufio.NewReader(conn)
+	c.connected = true
+	return nil
+}
+
+// reconnect closes the existing connection and establishes a new one
+func (c *socketClient) reconnect() error {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	c.connected = false
+	return c.connect()
 }
 
 func (c *socketClient) call(cmd string, params interface{}) (*Response, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	resp, err := c.doCall(cmd, params)
+	if err != nil && c.isConnectionError(err) {
+		// Try to reconnect once
+		if reconnErr := c.reconnect(); reconnErr != nil {
+			return nil, fmt.Errorf("reconnect failed: %w", reconnErr)
+		}
+		// Retry the call
+		resp, err = c.doCall(cmd, params)
+	}
+	return resp, err
+}
+
+// isConnectionError checks if the error indicates a broken connection
+func (c *socketClient) isConnectionError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// EOF means connection closed
+	if errors.Is(err, io.EOF) {
+		return true
+	}
+	// Check for network operation errors
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		return true
+	}
+	return false
+}
+
+// doCall performs the actual IPC call without reconnect logic
+func (c *socketClient) doCall(cmd string, params interface{}) (*Response, error) {
 	id := fmt.Sprintf("%d", c.reqID.Add(1))
 
 	req := Request{ID: id, Command: cmd}
