@@ -2,7 +2,6 @@
 package tray
 
 import (
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -27,21 +26,11 @@ type Tray struct {
 
 	mu           sync.Mutex
 	currentState string
-	stateNames   map[string]string
 }
 
 // New creates a new Tray instance
 func New(client ipc.Client) *Tray {
-	return &Tray{
-		client: client,
-		stateNames: map[string]string{
-			"protected": "Protected",
-			"warning":   "Warning",
-			"alert":     "Alert!",
-			"scanning":  "Scanning...",
-			"paused":    "Protection Paused",
-		},
-	}
+	return &Tray{client: client}
 }
 
 // Run starts the system tray application
@@ -119,13 +108,6 @@ func (t *Tray) setIcon(state string) {
 		systray.SetIcon(t.iconPaused)
 		systray.SetTooltip("Oreon Defense - Paused")
 		t.showNotification(NotificationFirewallDisabled, "Firewall Disabled", "Your firewall protection is currently disabled")
-	}
-
-	// Show state change notification
-	if oldState != "" && oldState != state {
-		title := "Oreon Defense - " + t.stateNames[state]
-		message := fmt.Sprintf("Protection state changed from %s to %s", oldState, state)
-		t.showNotification(NotificationType(state), title, message)
 	}
 }
 
