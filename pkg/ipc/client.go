@@ -9,6 +9,7 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Client defines the interface for IPC communication with the daemon
@@ -123,6 +124,8 @@ func (c *socketClient) doCall(cmd string, params interface{}) (*Response, error)
 		return nil, err
 	}
 
+	// Set read deadline to avoid blocking forever if daemon hangs
+	c.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 	line, err := c.reader.ReadBytes('\n')
 	if err != nil {
 		return nil, err
