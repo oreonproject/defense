@@ -3,7 +3,6 @@ package tray
 
 import (
 	"errors"
-	"log"
 	"log/slog"
 	"os"
 	"sync"
@@ -53,7 +52,7 @@ func (t *Tray) onReady() {
 	// Initialize D-Bus notifier
 	conn, err := dbus.SessionBus()
 	onAction := func(action *notify.ActionInvokedSignal) {
-		log.Println("Action Invoked:", action.ActionKey)
+		slog.Debug("notification action invoked", "action", action.ActionKey)
 		switch action.ActionKey {
 		case "enable":
 			t.executeOrder66("defense-ui", []string{"--enable-firewall"})

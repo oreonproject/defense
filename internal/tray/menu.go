@@ -1,7 +1,7 @@
 package tray
 
 import (
-	"fmt"
+	"log/slog"
 
 	"github.com/energye/systray"
 )
@@ -213,12 +213,12 @@ func (m *menu) handleFirewallToggle() {
 
 func (m *menu) handleOpenApp() {
 	// TODO: Implement app open
-	fmt.Println("Open app requested")
+	slog.Debug("open app requested")
 }
 
 func (m *menu) handleOpenSettings() {
 	// TODO: Open settings
-	fmt.Println("Open settings requested")
+	slog.Debug("open settings requested")
 }
 
 // updateAlertsMenu updates the alerts menu with the latest alerts

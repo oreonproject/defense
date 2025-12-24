@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
-	"log"
 	"log/slog"
 	"os/exec"
 	"time"
@@ -86,7 +85,7 @@ func (t *Tray) showNotification(notificationType NotificationType, title, messag
 			slog.Error("failed to show notification", "error", err)
 			return
 		}
-		log.Println("Notification sent with ID:", id)
+		slog.Debug("notification sent", "id", id)
 		// Listen for actions
 
 	}
