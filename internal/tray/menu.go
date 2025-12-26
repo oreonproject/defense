@@ -93,7 +93,7 @@ func (m *menu) setupHandlers() {
 func (m *menu) handleQuickScan() {
 	m.tray.setIcon("scanning")
 	go func() {
-		_, err := t.client.ScanQuick()
+		_, err := m.tray.client.StartQuickScan()
 		if err != nil {
 			m.tray.setIcon("warning")
 			m.tray.showNotification(None, "Scan Failed", "Failed to start quick scan: "+err.Error())
@@ -108,7 +108,7 @@ func (m *menu) handleQuickScan() {
 func (m *menu) handleFullScan() {
 	m.tray.setIcon("scanning")
 	go func() {
-		_, err := t.client.ScanFull()
+		_, err := m.tray.client.StartFullScan()
 		if err != nil {
 			m.tray.setIcon("warning")
 			m.tray.showNotification(None, "Scan Failed", "Failed to start full scan: "+err.Error())
