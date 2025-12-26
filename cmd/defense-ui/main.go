@@ -11,6 +11,8 @@ import (
 
 	"github.com/oreonproject/defense/internal/tray"
 	"github.com/oreonproject/defense/pkg/ipc"
+	// "github.com/oreonproject/defense/internal/ui"
+	// "github.com/therecipe/qt/widgets"
 )
 
 var version = "0.1.0-dev"
@@ -34,6 +36,19 @@ func main() {
 		errCh <- trayApp.Run()
 	}()
 
+	// Set the Qt platform to xcb (X11) to avoid Wayland issues
+	os.Setenv("QT_QPA_PLATFORM", "xcb")
+
+	// Start the Qt application
+	// app := widgets.NewQApplication(len(os.Args), os.Args)
+	// mainWindow := ui.NewMainWindow(app)
+	// mainWindow.Show()
+
+	// // Run the Qt application in a goroutine
+	// go func() {
+	// 	widgets.QApplication_Exec()
+	// }()
+
 	// Wait for either interrupt signal or tray exit
 	select {
 	case <-sigCh:
@@ -46,4 +61,5 @@ func main() {
 
 	// Cleanup
 	client.Close()
+	// app.Quit()
 }
